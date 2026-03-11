@@ -1,5 +1,7 @@
 import os
 import glob
+import pandas as pd
+import networkx as nx
 import torch
 from torch_geometric.nn import SAGEConv
 from torch_geometric.data import Data, Dataset
@@ -31,13 +33,20 @@ class dataset_loader(Dataset):
         self.node_files = sorted(glob.glob(os.path.join(root_dir,"nodes", '*_nodes.tsv')))
         self.target_files = sorted(glob.glob(os.path.join(root_dir,"targets", '*_target.tsv')))
 
-        if lel(self.adj_files) != len(self.node_files)
+        if lel(self.adj_files) != len(self.node_files) or len(self.adj_files) != len(self.target_files):
+            raise ValueError("Mismatch in number of adjacency, node feature, and target files")
 
 
     def len(self):
         return len(self.graph_files)
 
-    def get(self, idx):
+    def get(self, ii):
+      
+
+
+
+
+
         adj_path = self.graph_files[idx]
         base_name = os.path.basename(adj_path).replace('_adj.csv', '')
         target_path = os.path.join(self.root_dir, f"{base_name}_targets.csv")
@@ -88,3 +97,43 @@ def read_data(network_name):
 
 
 torch.load("/home/sur/lab/exp/2026/today2/sims/networks/088e4b1149acd16f282c_net.tsv")
+
+
+
+# Read list of adjancency matrix files and save edge index and edge weight for each graph
+root_dir = "/home/sur/lab/exp/2026/today2/sims"
+adj_files = sorted(glob.glob(os.path.join(root_dir,"networks", '*_net.tsv')))
+adj_files
+
+
+
+
+
+adj_file = adj_files[0]
+A = pd.read_csv(adj_file, header=None, sep='\t').values
+A = torch.tensor(A, dtype=torch.float64)
+A.fill_diagonal_(0)
+targets,sources = torch.nonzero(A, as_tuple=True)
+
+# edge weights
+edge_weight = A[targets, sources]
+
+# edge index
+edge_index = torch.stack([sources, targets], dim=0)
+
+
+target_files = sorted(glob.glob(os.path.join(root_dir,"targets", '*_target.tsv')))
+tgt_file = target_files[0]
+targets = pd.read_csv(tgt_file, sep='\t').values
+y = torch.tensor(targets[:,2], dtype=torch.float64)
+
+
+
+node_files = sorted(glob.glob(os.path.join(root_dir,"nodes", '*_nodes.tsv')))
+nd_file = node_files[0]
+features = pd.read_csv(nd_file, sep='\t').values
+x = torch.tensor(features[:,0:15], dtype=torch.float64)
+# Remove nan values
+x = torch.nan_to_num(x, nan=0.0)
+x
+
