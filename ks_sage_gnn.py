@@ -33,7 +33,7 @@ class dataset_loader(Dataset):
 
 
     def len(self):
-        return len(self.graph_files)
+        return len(self.adj_files)
 
     def get(self, ii):
 
@@ -73,7 +73,126 @@ class dataset_loader(Dataset):
         if torch.isnan(x).any():
             raise ValueError(f"NaN node features in {base_name}")
 
-        return Data(x=x, edge_index=edge_index, edge_weight=edge_weight, y=y)
+        return Data(x=x, edge_index=edge_index, edge_weight=edge_weight, y=y, num_nodes=x.shape[0])
+
+# Metric for accuracy (RMSE)
+def rmse(pred_y, y):
+    """Calculate RMSE."""
+    return torch.sqrt(torch.mean((pred_y - y) ** 2)).item()
+
+def sse(pred_y, y):
+    """Calculate SSE"""
+    return ((pred_y - y) ** 2).item()
+
+
+
+# Defiuine SAGE nn model (from Labonne)
+class SAGE_ks(torch.nn.Module):
+    """GraphSAGE"""
+    def __init__(self, dim_in, dim_h, dim_out):
+        super().__init__()
+        self.sage1 = SAGEConv(dim_in, dim_h)
+        self.sage2 = SAGEConv(dim_h, dim_h)
+        self.sage3 = SAGEConv(dim_h, dim_out)
+
+    def forward(self, x, edge_index):
+        h = self.sage1(x, edge_index)
+        h = torch.relu(h)
+        # h = F.dropout(h, p=0.5, training=self.training)
+        h = self.sage2(h, edge_index)
+        h = torch.relu(h)
+        # h = F.dropout(h, p=0.5, training=self.training)
+        h = self.sage3(h, edge_index)
+        return h
+
+    def fit(self, loader, epochs):
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
+
+        self.train()
+        for epoch in range(epochs+1):
+            total_loss = 0
+            SSE = 0
+            n = 0
+            val_loss = 0
+            val_SSE = 0
+            val_n = 0
+
+            # Train on batches
+            for batch in loader:
+                optimizer.zero_grad()
+                out = self(batch.x, batch.edge_index)
+                loss = criterion(out[batch.train_mask], batch.y[batch.train_mask])
+                total_loss += loss.item()
+                SSE += sse(out[batch.train_mask].argmax(dim=1), batch.y[batch.train_mask])
+                n += 
+                loss.backward()
+                optimizer.step()
+
+                # Validation
+                val_loss += criterion(out[batch.val_mask], batch.y[batch.val_mask])
+                val_RMSE += rmse(out[batch.val_mask].argmax(dim=1), batch.y[batch.val_mask])
+
+            # Print metrics every 10 epochs
+            if epoch % 20 == 0:
+                print(f'Epoch {epoch:>3} | Train Loss: {loss/len(loader):.3f} | Train RMSE: {RMSE:>6.2f}% | Val Loss: {val_loss/len(train_loader):.2f} | Val RMSE: {val_RMSE:.2f}%')
+
+    @torch.no_grad()
+    def test(self, data):
+        self.eval()
+        out = self(data.x, data.edge_index)
+        RMSE = rmse(out.argmax(dim=1)[data.test_mask], data.y[data.test_mask])
+        return acc
+
+
+
+
+
+data = dataset_loader("/home/sur/lab/exp/2026/today2/sims")
+data[0]
+data[1]
+data[2]
+# Create training, validation, and test masks. We have multiple networks, so we will create masks for each network separately. We will use an 80/10/10 split for train/val/test sets.
+for ii in range(len(data)):
+    print(f"Processing network {ii+1}/{len(data)}") 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+for data in data:
+    num_nodes = data.num_nodes
+    train_mask = torch.zeros(num_nodes, dtype=torch.bool)
+    val_mask = torch.zeros(num_nodes, dtype=torch.bool)
+    test_mask = torch.zeros(num_nodes, dtype=torch.bool)
+
+    # Randomly assign nodes to train, val, and test sets (80/10/10 split)
+    indices = torch.randperm(num_nodes)
+    train_mask[indices[:int(0.8 * num_nodes)]] = True
+    val_mask[indices[int(0.8 * num_nodes):int(0.9 * num_nodes)]] = True
+    test_mask[indices[int(0.9 * num_nodes):]] = True
+
+    data.train_mask = train_mask
+    data.val_mask = val_mask
+    data.test_mask = test_mask
+
 
 
 
