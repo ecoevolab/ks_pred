@@ -83,7 +83,7 @@ class dataset_loader(Dataset):
 
 def sse(pred_y, y):
     """Calculate SSE"""
-    return ((pred_y - y) ** 2).sum().item()
+    return ((pred_y - y) ** 2).sum()
 
 
 
@@ -144,11 +144,10 @@ class SAGE_ks(torch.nn.Module):
             train_rmse = torch.sqrt(train_sse / train_n).item()
             val_rmse = torch.sqrt(val_sse / val_n).item()
          
-
             # Print metrics every 10 epochs
             train_loader = 10
             if epoch % 20 == 0:
-                print(f'Epoch {epoch:>3} | Train Loss: {train_loss/len(loader):.3f} | Train RMSE: {train_rmse:>6.2f}% | Val Loss: {val_loss/len(val_loader):.2f} | Val RMSE: {val_rmse:.2f}%')
+                print(f'Epoch {epoch:>3} | Train Loss: {train_loss/len(loader):.3f} | Train RMSE: {train_rmse:>6.2f} | Val Loss: {val_loss/len(val_loader):.2f} | Val RMSE: {val_rmse:.2f}')
 
     @torch.no_grad()
     def test(self, data):
