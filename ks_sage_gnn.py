@@ -67,11 +67,11 @@ class dataset_loader(Dataset):
 
 
         if torch.isnan(y).any():
-            raise ValueError(f"NaN target values in {base_name}")
+            raise ValueError(f"NaN target values in {self.root_dir}")
         if torch.isnan(edge_weight).any():
-            raise ValueError(f"NaN edge weights in {base_name}")
+            raise ValueError(f"NaN edge weights in {self.root_dir}")
         if torch.isnan(x).any():
-            raise ValueError(f"NaN node features in {base_name}")
+            raise ValueError(f"NaN node features in {self.root_dir}")
 
         return Data(x=x, edge_index=edge_index, edge_weight=edge_weight, y=y, num_nodes=x.shape[0])
 
@@ -125,7 +125,7 @@ class SAGE_ks(torch.nn.Module):
                 loss = criterion(out[batch.train_mask], batch.y[batch.train_mask])
                 total_loss += loss.item()
                 SSE += sse(out[batch.train_mask].argmax(dim=1), batch.y[batch.train_mask])
-                n += 
+                # n += 
                 loss.backward()
                 optimizer.step()
 
@@ -134,6 +134,7 @@ class SAGE_ks(torch.nn.Module):
                 val_RMSE += rmse(out[batch.val_mask].argmax(dim=1), batch.y[batch.val_mask])
 
             # Print metrics every 10 epochs
+            train_loader = 10
             if epoch % 20 == 0:
                 print(f'Epoch {epoch:>3} | Train Loss: {loss/len(loader):.3f} | Train RMSE: {RMSE:>6.2f}% | Val Loss: {val_loss/len(train_loader):.2f} | Val RMSE: {val_RMSE:.2f}%')
 
@@ -142,56 +143,36 @@ class SAGE_ks(torch.nn.Module):
         self.eval()
         out = self(data.x, data.edge_index)
         RMSE = rmse(out.argmax(dim=1)[data.test_mask], data.y[data.test_mask])
-        return acc
+        return RMSE
 
 
 
 
+data = dataset_loader("/home/sur/lab/exp/2026/2026-03-09.sim_glv/sims")
 
-data = dataset_loader("/home/sur/lab/exp/2026/today2/sims")
 data[0]
 data[1]
 data[2]
-# Create training, validation, and test masks. We have multiple networks, so we will create masks for each network separately. We will use an 80/10/10 split for train/val/test sets.
-for ii in range(len(data)):
-    print(f"Processing network {ii+1}/{len(data)}") 
-    
 
+# Create training, validation, and test masks. We have multiple networks,
+# so each network will only be included in one of the masks.
+# Use 80/10/10 split for train/val/test.
+# Could be added to the data loader, but I will do it here for now.
+n_networks = len(data)
+r_ii = torch.randperm(n_networks)
 
+train_mask = torch.zeros(n_networks, dtype=torch.bool)
+train_mask[ r_ii[ :int(0.8 * n_networks) ] ] = True
 
+val_mask = torch.zeros(n_networks, dtype=torch.bool)
+val_mask[ r_ii [ int(0.8 * n_networks):int(0.9 * n_networks) ] ] = True
 
+test_mask = torch.zeros(n_networks, dtype=torch.bool)
+test_mask[ r_ii [ int(0.9 * n_networks): ] ] = True
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-for data in data:
-    num_nodes = data.num_nodes
-    train_mask = torch.zeros(num_nodes, dtype=torch.bool)
-    val_mask = torch.zeros(num_nodes, dtype=torch.bool)
-    test_mask = torch.zeros(num_nodes, dtype=torch.bool)
-
-    # Randomly assign nodes to train, val, and test sets (80/10/10 split)
-    indices = torch.randperm(num_nodes)
-    train_mask[indices[:int(0.8 * num_nodes)]] = True
-    val_mask[indices[int(0.8 * num_nodes):int(0.9 * num_nodes)]] = True
-    test_mask[indices[int(0.9 * num_nodes):]] = True
-
-    data.train_mask = train_mask
-    data.val_mask = val_mask
-    data.test_mask = test_mask
+data.train_mask = train_mask
+data.val_mask = val_mask
+data.test_mask = test_mask
 
 
 
