@@ -5,6 +5,7 @@ import networkx as nx
 import torch
 from torch_geometric.nn import SAGEConv
 from torch_geometric.data import Data, Dataset
+from torch_geometric.loader import DataLoader
 
 
 # Read data to train SAGEconv model.
@@ -112,11 +113,12 @@ class SAGE_ks(torch.nn.Module):
         self.train()
         for epoch in range(epochs+1):
             total_loss = 0
-            SSE = 0
-            n = 0
             val_loss = 0
-            val_SSE = 0
-            val_n = 0
+            totla_rmse = 0
+            val_rmse = 0
+            total_sse = 0
+            val_sse = 0
+            total_n = 0
 
             # Train on batches
             for batch in loader:
@@ -154,7 +156,7 @@ data[0]
 data[1]
 data[2]
 
-# Create training, validation, and test masks. We have multiple networks,
+# Create training, validation, and test datasets. We have multiple networks,
 # so each network will only be included in one of the masks.
 # Use 80/10/10 split for train/val/test.
 # Could be added to the data loader, but I will do it here for now.
@@ -170,11 +172,14 @@ val_mask[ r_ii [ int(0.8 * n_networks):int(0.9 * n_networks) ] ] = True
 test_mask = torch.zeros(n_networks, dtype=torch.bool)
 test_mask[ r_ii [ int(0.9 * n_networks): ] ] = True
 
-data.train_mask = train_mask
-data.val_mask = val_mask
-data.test_mask = test_mask
+train_dataset = data[train_mask]
+val_dataset = data[val_mask]
+test_dataset = data[test_mask]
 
 
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 
 
