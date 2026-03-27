@@ -41,7 +41,7 @@ class dataset_loader(Dataset):
         # Read adjacency matrix and convert to edge index and edge weight
         adj_file = self.adj_files[ii]
         A = pd.read_csv(adj_file, header=None, sep='\t').values
-        A = torch.tensor(A, dtype=torch.float64)
+        A = torch.tensor(A, dtype=torch.float32)
         A.fill_diagonal_(0)
         targets,sources = torch.nonzero(A, as_tuple=True)
 
@@ -54,12 +54,12 @@ class dataset_loader(Dataset):
         # Read target value
         tgt_file = self.target_files[ii]
         targets = pd.read_csv(tgt_file, sep='\t').values
-        y = torch.tensor(targets[:,2], dtype=torch.float64)
+        y = torch.tensor(targets[:,2], dtype=torch.float32)
 
         # Read node features
         nd_file = self.node_files[ii]
         features = pd.read_csv(nd_file, sep='\t').values
-        x = torch.tensor(features[:,0:15], dtype=torch.float64)
+        x = torch.tensor(features[:,0:15], dtype=torch.float32)
         # Remove nan values !!!!!!!
         x = torch.nan_to_num(x, nan=0.0)
 
@@ -161,7 +161,8 @@ class SAGE_ks(torch.nn.Module):
 
 data = dataset_loader("/home/sur/lab/exp/2026/2026-03-09.sim_glv/sims")
 
-data[0]
+data[0].edge_weight
+
 data[1]
 data[2]
 
@@ -200,12 +201,4 @@ print(gnn_sage_ks)
 
 # Train
 gnn_sage_ks.fit(train_loader, val_loader, epochs=20)
-
-
-
-
-# Test
-acc = graphsage.test(data)
-print(f'GraphSAGE test accuracy: {acc*100:.2f}%')
-
 
