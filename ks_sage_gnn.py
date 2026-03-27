@@ -77,9 +77,9 @@ class dataset_loader(Dataset):
         return Data(x=x, edge_index=edge_index, edge_weight=edge_weight, y=y, num_nodes=x.shape[0])
 
 # Metric for accuracy (RMSE)
-def rmse(pred_y, y):
-    """Calculate RMSE."""
-    return torch.sqrt(torch.mean((pred_y - y) ** 2)).item()
+# def rmse(pred_y, y):
+#     """Calculate RMSE."""
+#     return torch.sqrt(torch.mean((pred_y - y) ** 2)).item()
 
 def sse(pred_y, y):
     """Calculate SSE"""
@@ -106,39 +106,48 @@ class SAGE_ks(torch.nn.Module):
         h = self.sage3(h, edge_index)
         return h
 
-    def fit(self, loader, epochs):
+    def fit(self, loader, val_loader, epochs):
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
 
         self.train()
         for epoch in range(epochs+1):
-            total_loss = 0
+            train_loss = 0
             val_loss = 0
-            totla_rmse = 0
+            train_rmse = 0
             val_rmse = 0
-            total_sse = 0
+            train_sse = 0
             val_sse = 0
-            total_n = 0
+            train_n = 0
+            val_n = 0
 
             # Train on batches
             for batch in loader:
                 optimizer.zero_grad()
                 out = self(batch.x, batch.edge_index)
-                loss = criterion(out[batch.train_mask], batch.y[batch.train_mask])
-                total_loss += loss.item()
-                SSE += sse(out[batch.train_mask].argmax(dim=1), batch.y[batch.train_mask])
-                # n += 
+                loss = criterion(out, batch.y)
+                train_loss += loss.item()
+                train_sse += sse(out.argmax(dim=1), batch.y)
+                train_n += len(batch.y) # Only 1 dimensional target values
                 loss.backward()
                 optimizer.step()
+               
+            # Validation
+            for batch in val_loader:
+                out = self(batch.x, batch.edge_index)
+                val_loss += criterion(out, batch.y)
+                val_sse += sse(out.argmax(dim=1), batch.y)
+                val_n += len(batch.y) # Only 1 dimensional target values
 
-                # Validation
-                val_loss += criterion(out[batch.val_mask], batch.y[batch.val_mask])
-                val_RMSE += rmse(out[batch.val_mask].argmax(dim=1), batch.y[batch.val_mask])
+            # Calculate rmse
+            train_rmse = torch.sqrt(train_sse / train_n)
+            val_rmse = torch.sqrt(val_sse / val_n)
+         
 
             # Print metrics every 10 epochs
             train_loader = 10
             if epoch % 20 == 0:
-                print(f'Epoch {epoch:>3} | Train Loss: {loss/len(loader):.3f} | Train RMSE: {RMSE:>6.2f}% | Val Loss: {val_loss/len(train_loader):.2f} | Val RMSE: {val_RMSE:.2f}%')
+                print(f'Epoch {epoch:>3} | Train Loss: {train_loss/len(loader):.3f} | Train RMSE: {train_rmse:>6.2f}% | Val Loss: {val_loss/len(val_loader):.2f} | Val RMSE: {val_rmse:.2f}%')
 
     @torch.no_grad()
     def test(self, data):
@@ -178,16 +187,25 @@ test_dataset = data[test_mask]
 
 
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=False)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
-test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
+val_loader = DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
 
 
 
 
 
 
+gnn_sage_ks = SAGE_ks(dim_in = 15, dim_h = 8, dim_out = 1)
+print(gnn_sage_ks)
+
+# Train
+gnn_sage_ks.fit(train_loader, val_loader, epochs=20)
 
 
 
+
+# Test
+acc = graphsage.test(data)
+print(f'GraphSAGE test accuracy: {acc*100:.2f}%')
 
 
