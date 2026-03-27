@@ -83,7 +83,7 @@ class dataset_loader(Dataset):
 
 def sse(pred_y, y):
     """Calculate SSE"""
-    return ((pred_y - y) ** 2).item()
+    return ((pred_y - y) ** 2).sum().item()
 
 
 
@@ -141,8 +141,8 @@ class SAGE_ks(torch.nn.Module):
                 val_n += len(batch.y) # Only 1 dimensional target values
 
             # Calculate rmse
-            train_rmse = torch.sqrt(train_sse / train_n)
-            val_rmse = torch.sqrt(val_sse / val_n)
+            train_rmse = torch.sqrt(train_sse / train_n).item()
+            val_rmse = torch.sqrt(val_sse / val_n).item()
          
 
             # Print metrics every 10 epochs
@@ -201,3 +201,5 @@ print(gnn_sage_ks)
 # Train
 gnn_sage_ks.fit(train_loader, val_loader, epochs=20)
 
+
+sse(1,2)
