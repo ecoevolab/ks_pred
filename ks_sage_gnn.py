@@ -107,7 +107,8 @@ class SAGE_ks(torch.nn.Module):
         return h
 
     def fit(self, loader, val_loader, epochs):
-        criterion = torch.nn.CrossEntropyLoss()
+        # criterion = torch.nn.CrossEntropyLoss()
+        criterion = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
 
         self.train()
@@ -160,9 +161,7 @@ class SAGE_ks(torch.nn.Module):
 
 
 data = dataset_loader("/home/sur/lab/exp/2026/2026-03-09.sim_glv/sims")
-
-data[0].edge_weight
-
+data[0]
 data[1]
 data[2]
 
