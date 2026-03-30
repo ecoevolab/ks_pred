@@ -200,5 +200,6 @@ print(gnn_sage_ks)
 # Train
 gnn_sage_ks.fit(train_loader, val_loader, epochs=20)
 
-
-sse(1,2)
+# Test
+rmse = gnn_sage_ks.test(test_loader.dataset[0])
+print(f'GraphSAGE test RMSE: {rmse}')
