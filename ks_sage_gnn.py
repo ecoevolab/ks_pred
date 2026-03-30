@@ -128,7 +128,7 @@ class SAGE_ks(torch.nn.Module):
                 out = self(batch.x, batch.edge_index)
                 #return out, batch.y
                 loss = criterion(out.squeeze(-1), batch.y)
-                train_loss += loss.item()
+                train_loss += loss.item() / len(batch.y) / len(batch.y)
                 train_sse += sse(out.argmax(dim=1), batch.y)
                 train_n += len(batch.y) # Only 1 dimensional target values
                 loss.backward()
@@ -137,7 +137,7 @@ class SAGE_ks(torch.nn.Module):
             # Validation
             for batch in val_loader:
                 out = self(batch.x, batch.edge_index)
-                val_loss += criterion(out.squeeze(-1), batch.y)
+                val_loss += criterion(out.squeeze(-1), batch.y) / / len(batch.y)
                 val_sse += sse(out.argmax(dim=1), batch.y)
                 val_n += len(batch.y) # Only 1 dimensional target values
 
@@ -148,7 +148,7 @@ class SAGE_ks(torch.nn.Module):
             # Print metrics every 10 epochs
             train_loader = 10
             if epoch % 20 == 0:
-                print(f'Epoch {epoch:>3} | Train Loss: {train_loss/train_n:.3f} | Train RMSE: {train_rmse:>6.2f} | Val Loss: {val_loss/val_n:.2f} | Val RMSE: {val_rmse:.2f}')
+                print(f'Epoch {epoch:>3} | Train Loss: {train_loss:.3f} | Train RMSE: {train_rmse:>6.2f} | Val Loss: {val_loss:.2f} | Val RMSE: {val_rmse:.2f}')
 
     @torch.no_grad()
     def test(self, data):
