@@ -86,8 +86,7 @@ def sse(pred_y, y):
     return ((pred_y - y) ** 2).sum()
 
 
-
-# Defiuine SAGE nn model (from Labonne)
+# Define SAGE nn model (from Labonne)
 class SAGE_ks(torch.nn.Module):
     """GraphSAGE"""
     def __init__(self, dim_in, dim_h, dim_out):
@@ -95,7 +94,7 @@ class SAGE_ks(torch.nn.Module):
         self.sage1 = SAGEConv(dim_in, dim_h)
         self.sage2 = SAGEConv(dim_h, dim_h)
         self.sage3 = SAGEConv(dim_h, dim_out)
-
+    
     def forward(self, x, edge_index):
         h = self.sage1(x, edge_index)
         h = torch.relu(h)
@@ -105,12 +104,12 @@ class SAGE_ks(torch.nn.Module):
         # h = F.dropout(h, p=0.5, training=self.training)
         h = self.sage3(h, edge_index)
         return h
-
+    
     def fit(self, loader, val_loader, epochs):
         # criterion = torch.nn.CrossEntropyLoss()
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
-
+        
         self.train()
         for epoch in range(epochs+1):
             train_loss = 0
@@ -121,7 +120,7 @@ class SAGE_ks(torch.nn.Module):
             val_sse = 0
             train_n = 0
             val_n = 0
-
+            
             # Train on batches
             for batch in loader:
                 optimizer.zero_grad()
@@ -133,29 +132,29 @@ class SAGE_ks(torch.nn.Module):
                 train_n += len(batch.y) # Only 1 dimensional target values
                 loss.backward()
                 optimizer.step()
-               
+            
             # Validation
             for batch in val_loader:
                 out = self(batch.x, batch.edge_index)
-                val_loss += criterion(out.squeeze(-1), batch.y) / / len(batch.y)
+                val_loss += criterion(out.squeeze(-1), batch.y) / len(batch.y)
                 val_sse += sse(out.argmax(dim=1), batch.y)
                 val_n += len(batch.y) # Only 1 dimensional target values
-
+            
             # Calculate rmse
             train_rmse = torch.sqrt(train_sse / train_n).item()
             val_rmse = torch.sqrt(val_sse / val_n).item()
-         
-            # Print metrics every 10 epochs
-            train_loader = 10
-            if epoch % 20 == 0:
-                print(f'Epoch {epoch:>3} | Train Loss: {train_loss:.3f} | Train RMSE: {train_rmse:>6.2f} | Val Loss: {val_loss:.2f} | Val RMSE: {val_rmse:.2f}')
 
+            # Print metrics every 10 epochs
+            if epoch % 20 == 0:
+                print(f'Epoch {epoch} | Train Loss: {train_loss} | Train RMSE: {train_rmse} | Val Loss: {val_loss} | Val RMSE: {val_rmse}')
+    
     @torch.no_grad()
     def test(self, data):
         self.eval()
         out = self(data.x, data.edge_index)
-        RMSE = rmse(out.argmax(dim=1)[data.test_mask], data.y[data.test_mask])
-        return RMSE
+        sse_test = sse(out.argmax(dim=1), data.y)
+        rmse_test = sse_test / len(data.y)
+        return rmse_test.item()
 
 
 
