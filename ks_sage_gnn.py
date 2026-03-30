@@ -3,6 +3,7 @@ import glob
 import pandas as pd
 import networkx as nx
 import torch
+import torch.nn.functional as F
 from torch_geometric.nn import SAGEConv
 from torch_geometric.data import Data, Dataset
 from torch_geometric.loader import DataLoader
@@ -99,10 +100,10 @@ class SAGE_ks(torch.nn.Module):
     def forward(self, x, edge_index):
         h = self.sage1(x, edge_index)
         h = torch.relu(h)
-        # h = F.dropout(h, p=0.5, training=self.training)
+        h = F.dropout(h, p=0.5, training=self.training)
         h = self.sage2(h, edge_index)
         h = torch.relu(h)
-        # h = F.dropout(h, p=0.5, training=self.training)
+        h = F.dropout(h, p=0.5, training=self.training)
         h = self.sage3(h, edge_index)
         return h
     
@@ -161,9 +162,9 @@ class SAGE_ks(torch.nn.Module):
 
 
 data = dataset_loader("/home/sur/lab/exp/2026/2026-03-09.sim_glv/sims")
-data[0]
-data[1]
-data[2]
+# data[0]
+# data[1]
+# data[2]
 
 # Create training, validation, and test datasets. We have multiple networks,
 # so each network will only be included in one of the masks.
