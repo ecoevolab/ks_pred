@@ -8,6 +8,7 @@ from torch_geometric.nn import SAGEConv
 from torch_geometric.data import Data, Dataset
 from torch_geometric.loader import DataLoader
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 # Read data to train SAGEconv model.
@@ -189,7 +190,7 @@ gnn_sage_ks = SAGE_ks(dim_in = 15, dim_h = 8, dim_out = 1)
 print(gnn_sage_ks)
 
 # Train
-gnn_sage_ks.fit(train_loader, val_loader, epochs=100)
+gnn_sage_ks.fit(train_loader, val_loader, epochs=20)
 
 # Test
 rmse = gnn_sage_ks.test(test_loader.dataset[0])
@@ -200,11 +201,7 @@ print(f'GraphSAGE test RMSE: {rmse}')
 obs = test_loader.dataset[0].y
 preds = gnn_sage_ks.forward(test_loader.dataset[0].x, test_loader.dataset[0].edge_index)
 
-# Make a scatter plot of observed vs predicted values
-plt.scatter(obs, preds.detach().numpy())
-plt.xlabel('Observed')
-plt.ylabel('Predicted')
-plt.title('GraphSAGE Predictions vs Observed')
-plt.plot([obs.min(), obs.max()], [obs.min(), obs.max()], 'r--') # Add a diagonal line for reference
+# Make a scatter plot of observed vs predicted values, ad a regression line, and show the plot. 
+fig = sns.regplot(x=obs.detach().numpy(), y=preds.squeeze(-1).detach().numpy(), ci=None)
 plt.show()
 
