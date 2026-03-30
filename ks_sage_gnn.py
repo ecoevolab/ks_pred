@@ -78,11 +78,6 @@ class dataset_loader(Dataset):
 
         return Data(x=x, edge_index=edge_index, edge_weight=edge_weight, y=y, num_nodes=x.shape[0])
 
-# Metric for accuracy (RMSE)
-# def rmse(pred_y, y):
-#     """Calculate RMSE."""
-#     return torch.sqrt(torch.mean((pred_y - y) ** 2)).item()
-
 def sse(pred_y, y):
     """Calculate SSE"""
     return ((pred_y - y) ** 2).sum()
@@ -135,7 +130,7 @@ class SAGE_ks(torch.nn.Module):
                 loss.backward()
                 optimizer.step()
             
-            # Validation
+            # For can be removed if I ensure that val_loader has only one batch.
             for batch in val_loader:
                 out = self(batch.x, batch.edge_index)
                 val_loss += criterion(out.squeeze(-1), batch.y) / len(batch.y)
@@ -158,9 +153,7 @@ class SAGE_ks(torch.nn.Module):
         rmse_test = sse_test / len(data.y)
         return rmse_test.item()
 
-
-
-
+# Read data
 data = dataset_loader("/home/sur/lab/exp/2026/2026-03-09.sim_glv/sims")
 # data[0]
 # data[1]
@@ -186,7 +179,6 @@ train_dataset = data[train_mask]
 val_dataset = data[val_mask]
 test_dataset = data[test_mask]
 
-
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=False)
 val_loader = DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
@@ -197,19 +189,18 @@ gnn_sage_ks = SAGE_ks(dim_in = 15, dim_h = 8, dim_out = 1)
 print(gnn_sage_ks)
 
 # Train
-gnn_sage_ks.fit(train_loader, val_loader, epochs=20)
+gnn_sage_ks.fit(train_loader, val_loader, epochs=100)
 
 # Test
 rmse = gnn_sage_ks.test(test_loader.dataset[0])
 print(f'GraphSAGE test RMSE: {rmse}')
 
-
+# Plot
 # Get obseved and predicted values for model
 obs = test_loader.dataset[0].y
 preds = gnn_sage_ks.forward(test_loader.dataset[0].x, test_loader.dataset[0].edge_index)
 
 # Make a scatter plot of observed vs predicted values
-
 plt.scatter(obs, preds.detach().numpy())
 plt.xlabel('Observed')
 plt.ylabel('Predicted')
