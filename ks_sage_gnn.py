@@ -9,6 +9,7 @@ from torch_geometric.data import Data, Dataset
 from torch_geometric.loader import DataLoader
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import r2_score
 
 
 # Read data to train SAGEconv model.
@@ -96,10 +97,10 @@ class SAGE_ks(torch.nn.Module):
     def forward(self, x, edge_index):
         h = self.sage1(x, edge_index)
         h = torch.relu(h)
-        h = F.dropout(h, p=0.5, training=self.training)
+        # h = F.dropout(h, p=0.5, training=self.training)
         h = self.sage2(h, edge_index)
         h = torch.relu(h)
-        h = F.dropout(h, p=0.5, training=self.training)
+        # h = F.dropout(h, p=0.5, training=self.training)
         h = self.sage3(h, edge_index)
         return h
     
@@ -198,10 +199,29 @@ print(f'GraphSAGE test RMSE: {rmse}')
 
 # Plot
 # Get obseved and predicted values for model
-obs = test_loader.dataset[0].y
-preds = gnn_sage_ks.forward(test_loader.dataset[0].x, test_loader.dataset[0].edge_index)
+obs = test_loader.dataset[0].y.detach().numpy()
+preds = gnn_sage_ks.forward(test_loader.dataset[0].x, test_loader.dataset[0].edge_index).squeeze(-1).detach().numpy()
+# obs
+# preds
+
+# Get R2 score
+r2 = r2_score(obs, preds)
+# r2
 
 # Make a scatter plot of observed vs predicted values, ad a regression line, and show the plot. 
-fig = sns.regplot(x=obs.detach().numpy(), y=preds.squeeze(-1).detach().numpy(), ci=None)
+fig = sns.regplot(x=obs, y=preds, ci=None)
+fig.set_xlabel("Observed")
+fig.set_ylabel("Predicted")
+fig.annotate(f"$R^2 = {r2:.3f}$", 
+            xy=(0.05, 0.95), 
+            xycoords="axes fraction", 
+            fontsize=12, 
+            verticalalignment="top")
 plt.show()
 
+# import numpy as np
+# np.corrcoef(obs, preds)[0,1]
+
+
+# obs
+# preds
